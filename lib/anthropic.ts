@@ -34,6 +34,11 @@ export async function extractReceipt(
   imageBase64: string,
   mediaType: "image/jpeg" | "image/png" | "image/webp"
 ): Promise<ExtractedReceipt> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error(
+      "ANTHROPIC_API_KEY is not set in this environment (process.env.ANTHROPIC_API_KEY is empty)"
+    );
+  }
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const message = await client.messages.create({
