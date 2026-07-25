@@ -66,3 +66,20 @@ Open [http://localhost:3000](http://localhost:3000), upload a receipt photo, rev
 - Receipt images are sent to Claude for extraction and are not stored anywhere — the app has no database.
 - Every export appends its line items as new rows to the single spreadsheet in `GOOGLE_SHEET_ID` (a header row is added automatically the first time).
 - Anyone who can run this app can write to that spreadsheet — there's no per-user authentication, so only point it at a sheet you're fine having shared write access to.
+
+## Deploying to AWS Amplify
+
+Plain console-configured environment variables **do not reach this app's SSR runtime** on AWS Amplify Hosting (`WEB_COMPUTE` platform) — confirmed by direct testing; the deployed Lambda never saw them in `process.env`, regardless of Next.js version, IAM logging-role permissions, or whether the vars were set at app or branch level. `lib/ssmConfig.ts` works around this: it checks `process.env` first (so local dev via `.env.local` is unaffected), then falls back to reading the same four values from **AWS Systems Manager Parameter Store**.
+
+To deploy on Amplify:
+
+1. **Store the four secrets in SSM Parameter Store**, under `/recieptScanner/prod/`:
+   - `/recieptScanner/prod/ANTHROPIC_API_KEY` (SecureString)
+   - `/recieptScanner/prod/GOOGLE_SERVICE_ACCOUNT_EMAIL` (String)
+   - `/recieptScanner/prod/GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` (SecureString — keep the `\n` sequences literal, same as in `.env.local`)
+   - `/recieptScanner/prod/GOOGLE_SHEET_ID` (String)
+2. **Create an IAM role for Amplify's SSR Compute** (a *separate* concept from the app's regular service role) with:
+   - Trust policy allowing `amplify.amazonaws.com` to assume it (`sts:AssumeRole`)
+   - A permissions policy granting `ssm:GetParameter`, `ssm:GetParameters`, `ssm:GetParametersByPath` on `arn:aws:ssm:<region>:<account>:parameter/recieptScanner/*`, plus `kms:Decrypt` on the `alias/aws/ssm` key (needed because the SecureString params are KMS-encrypted)
+3. **Attach that role as the app's Compute role** — Amplify Console → App settings → IAM roles → Compute role (or `aws amplify update-app --compute-role-arn <role-arn>`). This is what actually grants the running SSR function usable AWS credentials at request time; takes effect immediately, no redeploy needed.
+4. Deploy normally — `next build` runs the same way; no other Amplify-specific config is required.
