@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ExtractedReceipt } from "./types";
+import { getConfigValue } from "./ssmConfig";
 
 const MODEL = "claude-sonnet-5";
 
@@ -34,14 +35,11 @@ export async function extractReceipt(
   imageBase64: string,
   mediaType: "image/jpeg" | "image/png" | "image/webp"
 ): Promise<ExtractedReceipt> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    const allKeys = Object.keys(process.env).sort();
-    throw new Error(
-      `ANTHROPIC_API_KEY is not set in this environment. ` +
-        `All ${allKeys.length} env var keys visible to this process: ${JSON.stringify(allKeys)}`
-    );
+  const apiKey = await getConfigValue("ANTHROPIC_API_KEY");
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY is not available from process.env or SSM");
   }
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const client = new Anthropic({ apiKey });
 
   const message = await client.messages.create({
     model: MODEL,

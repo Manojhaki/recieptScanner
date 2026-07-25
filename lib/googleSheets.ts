@@ -1,15 +1,17 @@
 import { google } from "googleapis";
 import type { ExtractedReceipt } from "./types";
+import { getConfigValue } from "./ssmConfig";
 
 const SHEET_TAB = process.env.GOOGLE_SHEET_TAB || "Sheet1";
 const HEADER = ["Date", "Vendor", "Item", "Quantity", "Unit Price", "Total Price"];
 
-function getAuth() {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, "\n");
+async function getAuth() {
+  const email = await getConfigValue("GOOGLE_SERVICE_ACCOUNT_EMAIL");
+  const rawPrivateKey = await getConfigValue("GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY");
+  const privateKey = rawPrivateKey?.replace(/\\n/g, "\n");
   if (!email || !privateKey) {
     throw new Error(
-      "Missing GOOGLE_SERVICE_ACCOUNT_EMAIL or GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY"
+      "GOOGLE_SERVICE_ACCOUNT_EMAIL or GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY is not available from process.env or SSM"
     );
   }
   return new google.auth.JWT({
@@ -20,12 +22,12 @@ function getAuth() {
 }
 
 export async function exportReceiptToSheet(receipt: ExtractedReceipt): Promise<string> {
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+  const spreadsheetId = await getConfigValue("GOOGLE_SHEET_ID");
   if (!spreadsheetId) {
-    throw new Error("Missing GOOGLE_SHEET_ID");
+    throw new Error("GOOGLE_SHEET_ID is not available from process.env or SSM");
   }
 
-  const sheets = google.sheets({ version: "v4", auth: getAuth() });
+  const sheets = google.sheets({ version: "v4", auth: await getAuth() });
 
   const existing = await sheets.spreadsheets.values.get({
     spreadsheetId,
