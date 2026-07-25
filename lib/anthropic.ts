@@ -35,14 +35,10 @@ export async function extractReceipt(
   mediaType: "image/jpeg" | "image/png" | "image/webp"
 ): Promise<ExtractedReceipt> {
   if (!process.env.ANTHROPIC_API_KEY) {
-    const envKeyCount = Object.keys(process.env).length;
-    const matchingKeys = Object.keys(process.env).filter((k) =>
-      /anthropic|google/i.test(k)
-    );
+    const allKeys = Object.keys(process.env).sort();
     throw new Error(
       `ANTHROPIC_API_KEY is not set in this environment. ` +
-        `Total env vars visible to this process: ${envKeyCount}. ` +
-        `Keys matching /anthropic|google/i: ${JSON.stringify(matchingKeys)}`
+        `All ${allKeys.length} env var keys visible to this process: ${JSON.stringify(allKeys)}`
     );
   }
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
