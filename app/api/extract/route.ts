@@ -25,8 +25,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(receipt);
   } catch (err) {
     console.error("Receipt extraction failed", err);
+    const detail = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { error: "Failed to extract receipt data" },
+      { error: "Failed to extract receipt data", detail },
       { status: 502 }
     );
   }

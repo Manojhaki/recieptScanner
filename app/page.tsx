@@ -21,7 +21,11 @@ export default function Home() {
       formData.append("image", file);
       const res = await fetch("/api/extract", { method: "POST", body: formData });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Extraction failed");
+      if (!res.ok) {
+        throw new Error(
+          data.detail ? `${data.error}: ${data.detail}` : data.error || "Extraction failed"
+        );
+      }
       setReceipt(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Extraction failed");
@@ -41,7 +45,11 @@ export default function Home() {
         body: JSON.stringify(receipt),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Export failed");
+      if (!res.ok) {
+        throw new Error(
+          data.detail ? `${data.error}: ${data.detail}` : data.error || "Export failed"
+        );
+      }
       setSheetUrl(data.url);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Export failed");

@@ -13,8 +13,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url });
   } catch (err) {
     console.error("Sheet export failed", err);
+    const detail = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { error: "Failed to export to Google Sheet" },
+      { error: "Failed to export to Google Sheet", detail },
       { status: 502 }
     );
   }
